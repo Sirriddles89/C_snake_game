@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 //game variables
 int game_over, score;
@@ -12,6 +15,8 @@ int X, Y, food_x, food_y, flag;
 //function prototypes
 void boundary();
 void setup();
+void input();
+int kbhit();
 
 int main(void)
 {
@@ -82,4 +87,69 @@ void setup()
             goto state2;
         }
     score = 0;            
+}
+
+//function to control movement
+void input()
+{
+    char direction;
+    if (kbhit())
+    {
+        switch(getchar())
+        {
+            case 'a':
+            {
+                flag = 1;
+                break;
+            }
+            case 's':
+            {
+                flag = 2;
+                break;             
+            }
+            case 'd': 
+            {
+                flag = 3;
+                break;
+            }
+            case 'w':
+            {
+                flag = 4;
+                break;
+            }
+            case 'q':
+            {
+                game_over = 1;
+                break;
+            }
+        }
+    }
+}
+
+//kbhit function (taken from https://stackoverflow.com/questions/22166074/is-there-a-way-to-detect-if-a-key-has-been-pressed)
+int kbhit()
+{
+  struct termios oldt, newt;
+  int ch;
+  int oldf;
+
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+  ch = getchar();
+
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+  if(ch != EOF)
+  {
+    ungetc(ch, stdin);
+    return 1;
+  }
+
+  return 0;
 }
