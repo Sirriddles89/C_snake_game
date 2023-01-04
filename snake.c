@@ -5,7 +5,7 @@
 #include <time.h>
 #include <stdlib.h>
 
-#define DELAY 50000
+#define DELAY 60000
 #define TIMEOUT 10
 
 // game structs
@@ -31,9 +31,12 @@ typedef struct g_board {
 
 // Function prototypes
 void spawn_fruit(WINDOW *game);
+void input(int ch);
+void movement();
+void draw();
 
 // Global variables
-game_board board = {.height = 53, .width = 63, .game_over = 0};
+game_board board = {.game_over = 0};
 snake_head head;
 direction currentDir = RIGHT;
 int rows, cols;
@@ -48,13 +51,15 @@ int main(void)
 
     //establish height/width for game area and center it
    int rows, cols;
-   int start_y = (LINES - board.height) / 2; 
-   int start_x = (COLS - board.width) / 2; 
+   getmaxyx(stdscr, rows, cols);
+   board.height = rows;
+   board.width = cols / 3;
+   int start_y = (rows - board.height) / 2; 
+   int start_x = (cols - board.width) / 2; 
    refresh();
 
    // Create window for game area and put a border around it
    WINDOW *game = newwin(board.height, board.width, start_y, start_x);
-   getmaxyx(game, rows, cols);
    box(game, 0, 0); 
    wrefresh(game);
 
@@ -70,8 +75,49 @@ int main(void)
     int ch;
     while(1)
     {
-        //input
-        ch = getch();
+        // Take user input
+        input(ch);
+        
+        // Move snake
+        movement();
+
+        // Print stuff
+        draw(game);
+        
+    }
+
+    //apparently the getchar() here was fucking everything up? But I had to include it initially to get the program to run? Idk man I'm so confused
+    endwin();
+    return 0;
+}
+
+// Spawn fruit on game board
+void spawn_fruit(WINDOW *game)
+{
+   //initialize random number generator
+    time_t t;
+    srand((unsigned) time(&t));
+
+    state1:
+        board.fruit[0] = rand() % board.height;
+        if (board.fruit[0] == 0)
+        {
+            goto state1;
+        }
+    state2:
+        board.fruit[1] = rand() % board.width;
+        if (board.fruit[1] == 0)
+        {
+            goto state2;
+        }
+   
+   mvwprintw(game, board.fruit[0], board.fruit[1], "#");
+   wrefresh(game);
+}
+
+void input(int ch)
+{
+    ch = getch();
         if (ch == KEY_RIGHT)
         {
             currentDir = RIGHT;
@@ -88,10 +134,11 @@ int main(void)
         {
             currentDir = DOWN;
         }
+}
 
-        //movement
-
-        if (currentDir == RIGHT)
+void movement()
+{
+    if (currentDir == RIGHT)
         {
             head.location_x++;
         }
@@ -107,39 +154,12 @@ int main(void)
         {
             head.location_y++;
         }
-
-        //print stuff
-        mvwprintw(game, head.location_y, head.location_x, "0");
-        mvwprintw(game, head.location_y, head.location_x - 1, " ");
-        wrefresh(game);
-        usleep(DELAY);
-    }
-
-    //apparently the getchar() here was fucking everything up? But I had to include it initially to get the program to run? Idk man I'm so confused
-    endwin();
-    return 0;
 }
 
-// Spawn fruit on game board
-void spawn_fruit(WINDOW *game)
+void draw(WINDOW* game)
 {
-   //initialize random number generator
-    time_t t;
-    srand((unsigned) time(&t));
-
-    state1:
-        board.fruit[0] = rand() % 50;
-        if (board.fruit[0] == 0)
-        {
-            goto state1;
-        }
-    state2:
-        board.fruit[1] = rand() % 60;
-        if (board.fruit[1] == 0)
-        {
-            goto state2;
-        }
-   
-   mvwprintw(game, board.fruit[0], board.fruit[1], "#");
-   wrefresh(game);
+    mvwprintw(game, head.location_y, head.location_x, "0");
+    mvwprintw(game, head.location_y, head.location_x - 1, " ");
+    wrefresh(game);
+    usleep(DELAY);
 }
