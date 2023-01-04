@@ -32,8 +32,8 @@ typedef struct g_board {
 // Function prototypes
 void spawn_fruit(WINDOW *game);
 void input(int ch);
-void movement();
-void draw();
+void movement(int rows, int cols);
+void draw(WINDOW *game);
 
 // Global variables
 game_board board = {.game_over = 0};
@@ -73,16 +73,28 @@ int main(void)
     wrefresh(game);
 
     int ch;
-    while(1)
+    while(board.game_over == 0)
     {
         // Take user input
         input(ch);
         
         // Move snake
-        movement();
+        movement(rows, cols);
 
-        // Print stuff
+        // Collision detection
+        if (head.location_y == 0 || head.location_y == board.height - 1 || head.location_x == 0|| head.location_x == board.width - 1)
+        {
+            
+            board.game_over++;
+        }
+
+        // draw stuff
         draw(game);
+
+        if (board.game_over == 1)
+        {
+            sleep(2);
+        }
         
     }
 
@@ -136,30 +148,50 @@ void input(int ch)
         }
 }
 
-void movement()
+void movement(int rows, int cols)
 {
     if (currentDir == RIGHT)
-        {
-            head.location_x++;
-        }
-        else if (currentDir == UP)
-        {
-            head.location_y--;
-        }
-        else if (currentDir == LEFT)
-        {
-            head.location_x--;
-        }
-        else if (currentDir == DOWN)
-        {
-            head.location_y++;
-        }
+    {
+        head.location_x++;
+    }
+    else if (currentDir == UP)
+    {
+        head.location_y--;
+    }
+    else if (currentDir == LEFT)
+    {
+        head.location_x--;
+    }
+    else if (currentDir == DOWN)
+    {
+        head.location_y++;
+    }
+    
 }
 
 void draw(WINDOW* game)
 {
-    mvwprintw(game, head.location_y, head.location_x, "0");
-    mvwprintw(game, head.location_y, head.location_x - 1, " ");
+    mvwprintw(game, head.location_y, head.location_x, "o");
+    switch (currentDir)
+    {
+        case RIGHT:
+            mvwprintw(game, head.location_y, head.location_x - 1, " ");
+        case LEFT:
+            mvwprintw(game, head.location_y, head.location_x + 1, " ");
+        case UP:
+            mvwprintw(game, head.location_y + 1, head.location_x, " ");
+        case DOWN:
+            mvwprintw(game, head.location_y - 1, head.location_x, " ");
+
+
+    }
+
+    if (board.game_over == 1)
+    {
+        wclear(game);
+        mvwprintw(game, (board.height / 2), (board.width / 2), "%s", "GAME OVER");
+        sleep(1);
+    }
     wrefresh(game);
     usleep(DELAY);
 }
