@@ -5,41 +5,48 @@
 #include <time.h>
 #include <stdlib.h>
 
-#define DELAY 30000
+#define DELAY 50000
+#define TIMEOUT 10
 
-typedef struct s_head
-{
-   int location[2];
+// game structs
+typedef enum {
+    LEFT, 
+    RIGHT, 
+    UP, 
+    DOWN
+} direction;
+
+typedef struct s_head {
+   int location_y;
+   int location_x;
    struct s_head* next;
-   int head;
-   int direction;
-   int next_x;
-}
-snake_head;
+} snake_head;
 
-typedef struct g_board
-{
+typedef struct g_board {
    int fruit[2];
    int game_over;
    int height; 
    int width;
-}
-game_board;
+} game_board;
 
 // Function prototypes
 void spawn_fruit(WINDOW *game);
-void input(WINDOW *game, int rows, int cols);
 
+// Global variables
 game_board board = {.height = 53, .width = 63, .game_over = 0};
 snake_head head;
+direction currentDir = RIGHT;
+int rows, cols;
 
 int main(void)
 {
-   initscr();
-   noecho();
-   curs_set(FALSE);
+    initscr();
+    curs_set(FALSE);
+    keypad(stdscr, TRUE);
+    cbreak();
+    timeout(TIMEOUT);
 
-   //establish height/width for game area and center it
+    //establish height/width for game area and center it
    int rows, cols;
    int start_y = (LINES - board.height) / 2; 
    int start_x = (COLS - board.width) / 2; 
@@ -51,26 +58,66 @@ int main(void)
    box(game, 0, 0); 
    wrefresh(game);
 
-   // Call spawn_fruit function to spawn initial fruit
-   spawn_fruit(game); 
+    // Call spawn_fruit function to spawn initial fruit
+    spawn_fruit(game); 
 
-   // Set initial coordinates for snake head and print
-   head.location[1] = (board.height / 2);
-   head.location[2] = (board.width / 2);
-   mvwprintw(game, head.location[1], head.location[2], "0");
-   wrefresh(game);
+    // Set initial coordinates for snake head and print
+    head.location_y = (board.height / 2);
+    head.location_x = (board.width / 2);
+    mvwprintw(game, head.location_y, head.location_x, "0");
+    wrefresh(game);
 
-   // Call input function to move snake
-   while(true)
-   {
-      input(game, rows, cols);
-      wrefresh(game);
-   }
-   
+    int ch;
+    while(1)
+    {
+        //input
+        ch = getch();
+        if (ch == KEY_RIGHT)
+        {
+            currentDir = RIGHT;
+        }
+        else if (ch == KEY_UP)
+        {
+            currentDir = UP;
+        }
+        else if (ch == KEY_LEFT)
+        {
+            currentDir = LEFT;
+        }
+        else if (ch == KEY_DOWN)
+        {
+            currentDir = DOWN;
+        }
 
-   getchar();
-   endwin();
-   return 0;
+        //movement
+
+        if (currentDir == RIGHT)
+        {
+            head.location_x++;
+        }
+        else if (currentDir == UP)
+        {
+            head.location_y--;
+        }
+        else if (currentDir == LEFT)
+        {
+            head.location_x--;
+        }
+        else if (currentDir == DOWN)
+        {
+            head.location_y++;
+        }
+
+        //print stuff
+        mvwprintw(game, head.location_y, head.location_x, "0");
+        mvwprintw(game, head.location_y, head.location_x - 1, " ");
+        wrefresh(game);
+        usleep(DELAY);
+    }
+
+    //apparently the getchar() here was fucking everything up? But I had to include it initially to get the program to run? Idk man I'm so confused
+    endwin();
+    return 0;
 }
 
 // Spawn fruit on game board
@@ -95,55 +142,4 @@ void spawn_fruit(WINDOW *game)
    
    mvwprintw(game, board.fruit[0], board.fruit[1], "#");
    wrefresh(game);
-}
-
-void input(WINDOW *game, int rows, int cols)
-{
-   keypad(game, TRUE);
-   int ch;
-   int y = head.location[1];
-   int x = head.location[2];
-   cbreak();
-   while((ch = wgetch(game)) != KEY_END)
-   {
-      
-      switch (ch)
-        {
-            case KEY_UP:
-                if (y > 0)
-                {
-                    --y;
-                    break;
-                }
-            
-            case KEY_DOWN:
-                if (y < (rows - 2))
-                {
-                    ++y;
-                    break;
-                }
-            
-            case KEY_LEFT:
-                if (x > 0)
-                {
-                    --x;
-                    break;
-                }
-            
-            case KEY_RIGHT:
-                if (x < (cols - 2))
-                {
-                    ++x;
-                    break;
-                }
-
-            case KEY_HOME:
-                x = 0;
-                y = 0;
-                break;
-        }
-
-      mvwprintw(game, y, x, "0");
-      wrefresh(game);
-   }
 }
