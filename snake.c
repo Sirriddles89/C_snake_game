@@ -23,7 +23,8 @@ typedef struct s_head {
 } snake_head;
 
 typedef struct g_board {
-   int fruit[2];
+   int fruit_y;
+   int fruit_x;
    int game_over;
    int height; 
    int width;
@@ -43,6 +44,7 @@ int rows, cols;
 
 int main(void)
 {
+    srand(time(NULL));
     initscr();
     curs_set(FALSE);
     keypad(stdscr, TRUE);
@@ -63,18 +65,19 @@ int main(void)
    box(game, 0, 0); 
    wrefresh(game);
 
-    // Call spawn_fruit function to spawn initial fruit
-    spawn_fruit(game); 
+    
 
     // Set initial coordinates for snake head and print
     head.location_y = (board.height / 2);
     head.location_x = (board.width / 2);
     mvwprintw(game, head.location_y, head.location_x, "0");
     wrefresh(game);
+    spawn_fruit(game);
 
     int ch;
     while(board.game_over == 0)
     {
+
         // Take user input
         input(ch);
         
@@ -87,6 +90,12 @@ int main(void)
             
             board.game_over++;
         }
+
+        if (head.location_y == board.fruit_y && head.location_x == board.fruit_x)
+        {
+            spawn_fruit(game);
+        }
+        
 
         // draw stuff
         draw(game);
@@ -103,30 +112,15 @@ int main(void)
     return 0;
 }
 
-// Spawn fruit on game board
+// Function to spawn fruit within board parameters
 void spawn_fruit(WINDOW *game)
 {
-   //initialize random number generator
-    time_t t;
-    srand((unsigned) time(&t));
-
-    state1:
-        board.fruit[0] = rand() % board.height;
-        if (board.fruit[0] == 0)
-        {
-            goto state1;
-        }
-    state2:
-        board.fruit[1] = rand() % board.width;
-        if (board.fruit[1] == 0)
-        {
-            goto state2;
-        }
-   
-   mvwprintw(game, board.fruit[0], board.fruit[1], "#");
-   wrefresh(game);
+    board.fruit_y = rand() % (board.height - 10) + 5;
+        
+    board.fruit_x = rand() % (board.width - 20) + 10;
 }
 
+// Function to read keyboard input from user
 void input(int ch)
 {
     ch = getch();
@@ -148,6 +142,7 @@ void input(int ch)
         }
 }
 
+// Function to set which direction the snake moves in
 void movement(int rows, int cols)
 {
     if (currentDir == RIGHT)
@@ -169,9 +164,16 @@ void movement(int rows, int cols)
     
 }
 
+// Function to draw graphics on screen
 void draw(WINDOW* game)
 {
-    mvwprintw(game, head.location_y, head.location_x, "o");
+    // Print fruit
+    mvwprintw(game, head.location_y, head.location_x, "#");
+    
+    //Print snake 
+    mvwprintw(game, board.fruit_y, board.fruit_x, "o");
+    
+    // Erase previous snake
     switch (currentDir)
     {
         case RIGHT:
@@ -186,6 +188,7 @@ void draw(WINDOW* game)
 
     }
 
+    // Print "Game Over" message
     if (board.game_over == 1)
     {
         wclear(game);
