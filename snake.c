@@ -5,7 +5,7 @@
 #include <time.h>
 #include <stdlib.h>
 
-#define DELAY 60000
+#define DELAY 220000
 #define TIMEOUT 10
 
 // game structs
@@ -20,7 +20,8 @@ typedef struct s_head {
    int location_y;
    int location_x;
    struct s_head* next;
-} snake_head;
+   direction CurrentDir;
+} snake_part;
 
 typedef struct g_board {
    int fruit_y;
@@ -38,9 +39,10 @@ void draw(WINDOW *game);
 
 // Global variables
 game_board board = {.game_over = 0};
-snake_head head;
-direction currentDir = RIGHT;
+snake_part head;
+snake_part tail;
 int rows, cols;
+int part_count;
 
 int main(void)
 {
@@ -50,6 +52,8 @@ int main(void)
     keypad(stdscr, TRUE);
     cbreak();
     timeout(TIMEOUT);
+    head.CurrentDir = RIGHT;
+    part_count = 1;
 
     //establish height/width for game area and center it
    int rows, cols;
@@ -94,6 +98,7 @@ int main(void)
         if (head.location_y == board.fruit_y && head.location_x == board.fruit_x)
         {
             spawn_fruit(game);
+            part_count++;
         }
         
 
@@ -126,38 +131,38 @@ void input(int ch)
     ch = getch();
         if (ch == KEY_RIGHT)
         {
-            currentDir = RIGHT;
+            head.CurrentDir = RIGHT;
         }
         else if (ch == KEY_UP)
         {
-            currentDir = UP;
+            head.CurrentDir = UP;
         }
         else if (ch == KEY_LEFT)
         {
-            currentDir = LEFT;
+            head.CurrentDir = LEFT;
         }
         else if (ch == KEY_DOWN)
         {
-            currentDir = DOWN;
+            head.CurrentDir = DOWN;
         }
 }
 
 // Function to set which direction the snake moves in
 void movement(int rows, int cols)
 {
-    if (currentDir == RIGHT)
+    if (head.CurrentDir == RIGHT)
     {
         head.location_x++;
     }
-    else if (currentDir == UP)
+    else if (head.CurrentDir == UP)
     {
         head.location_y--;
     }
-    else if (currentDir == LEFT)
+    else if (head.CurrentDir == LEFT)
     {
         head.location_x--;
     }
-    else if (currentDir == DOWN)
+    else if (head.CurrentDir == DOWN)
     {
         head.location_y++;
     }
@@ -173,17 +178,17 @@ void draw(WINDOW* game)
     //Print snake 
     mvwprintw(game, board.fruit_y, board.fruit_x, "o");
     
-    // Erase previous snake
-    switch (currentDir)
+    // Erase previous snake part
+    switch (head.CurrentDir)
     {
         case RIGHT:
-            mvwprintw(game, head.location_y, head.location_x - 1, " ");
+            mvwprintw(game, head.location_y, head.location_x - part_count, " ");
         case LEFT:
-            mvwprintw(game, head.location_y, head.location_x + 1, " ");
+            mvwprintw(game, head.location_y, head.location_x + part_count, " ");
         case UP:
-            mvwprintw(game, head.location_y + 1, head.location_x, " ");
+            mvwprintw(game, head.location_y + part_count, head.location_x, " ");
         case DOWN:
-            mvwprintw(game, head.location_y - 1, head.location_x, " ");
+            mvwprintw(game, head.location_y - part_count, head.location_x, " ");
 
 
     }
