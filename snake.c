@@ -71,16 +71,38 @@ int main(void)
 
     
 
-    // Set initial coordinates for snake head and print
+    // Set initial coordinates for snake head and tail
     head.location_y = (board.height / 2);
     head.location_x = (board.width / 2);
-    mvwprintw(game, head.location_y, head.location_x, "0");
-    wrefresh(game);
+
+    // Spawn initial fruit
     spawn_fruit(game);
 
     int ch;
     while(board.game_over == 0)
     {
+
+        // Set tail coordinates
+        if (head.CurrentDir == RIGHT)
+        {
+            tail.location_x = head.location_x - (part_count - 2);
+            tail.location_y = head.location_y;
+        }
+        else if (head.CurrentDir == LEFT)
+        {
+            tail.location_x = head.location_x + (part_count - 2);
+            tail.location_y = head.location_y;
+        }
+        else if (head.CurrentDir == UP)
+        {
+            tail.location_y = head.location_y + (part_count - 2);
+            tail.location_x = head.location_x;
+        }
+        else if (head.CurrentDir == DOWN)
+        {
+            tail.location_y = head.location_y - (part_count - 2);
+            tail.location_x = head.location_x;
+        }
 
         // Take user input
         input(ch);
@@ -177,6 +199,12 @@ void draw(WINDOW* game)
     
     //Print snake 
     mvwprintw(game, board.fruit_y, board.fruit_x, "o");
+
+    // Print tail
+    if (part_count > 1)
+    {
+        mvwprintw(game, tail.location_y, tail.location_x, "x");
+    }
     
     // Erase previous snake part
     switch (head.CurrentDir)
