@@ -5,7 +5,7 @@
 #include <time.h>
 #include <stdlib.h>
 
-#define DELAY 220000
+#define DELAY 80000
 #define TIMEOUT 10
 
 // game structs
@@ -19,9 +19,9 @@ typedef enum {
 typedef struct s_head {
    int location_y;
    int location_x;
-   struct s_head* next;
+   struct s_head *next;
    direction CurrentDir;
-} snake_part;
+} snake_piece;
 
 typedef struct g_board {
    int fruit_y;
@@ -35,13 +35,16 @@ typedef struct g_board {
 void spawn_fruit(WINDOW *game);
 void input(int ch);
 void movement(int rows, int cols);
+void grow_snake(WINDOW *game);
 void draw(WINDOW *game);
 
 // Global variables
 game_board board = {.game_over = 0};
-snake_part head;
-snake_part tail;
+snake_piece head;
+snake_piece *tail;
 int rows, cols;
+int next_x;
+int next_y;
 int part_count;
 
 int main(void)
@@ -65,13 +68,9 @@ int main(void)
    refresh();
 
    // Create window for game area and put a border around it
-   WINDOW *game = newwin(board.height, board.width, start_y, start_x);
-   box(game, 0, 0); 
-   wrefresh(game);
-
-    
-
-    // Set initial coordinates for snake head and tail
+   WINDOW *game = newwin(board.height, board.width, start_y, start_x); 
+ 
+    // Set initial coordinates for snake head
     head.location_y = (board.height / 2);
     head.location_x = (board.width / 2);
 
@@ -82,45 +81,20 @@ int main(void)
     while(board.game_over == 0)
     {
 
-        // Set tail coordinates
-        if (head.CurrentDir == RIGHT)
-        {
-            tail.location_x = head.location_x - (part_count - 2);
-            tail.location_y = head.location_y;
-        }
-        else if (head.CurrentDir == LEFT)
-        {
-            tail.location_x = head.location_x + (part_count - 2);
-            tail.location_y = head.location_y;
-        }
-        else if (head.CurrentDir == UP)
-        {
-            tail.location_y = head.location_y + (part_count - 2);
-            tail.location_x = head.location_x;
-        }
-        else if (head.CurrentDir == DOWN)
-        {
-            tail.location_y = head.location_y - (part_count - 2);
-            tail.location_x = head.location_x;
-        }
-
         // Take user input
         input(ch);
         
-        // Move snake
+        // Move snake / tail
         movement(rows, cols);
 
-        // Collision detection
+        // grow snake
+        grow_snake(game);
+
+        // Collision detection (border)
         if (head.location_y == 0 || head.location_y == board.height - 1 || head.location_x == 0|| head.location_x == board.width - 1)
         {
             
             board.game_over++;
-        }
-
-        if (head.location_y == board.fruit_y && head.location_x == board.fruit_x)
-        {
-            spawn_fruit(game);
-            part_count++;
         }
         
 
@@ -172,55 +146,137 @@ void input(int ch)
 // Function to set which direction the snake moves in
 void movement(int rows, int cols)
 {
+    // Move head
+    int temp_y;
+    int temp_x;
     if (head.CurrentDir == RIGHT)
     {
+        next_x = head.location_x;
+        next_y = head.location_y;
         head.location_x++;
+
     }
     else if (head.CurrentDir == UP)
     {
+        next_x = head.location_x;
+        next_y = head.location_y;
         head.location_y--;
     }
     else if (head.CurrentDir == LEFT)
     {
+        next_y = head.location_y;
+        next_x = head.location_x;
         head.location_x--;
     }
     else if (head.CurrentDir == DOWN)
     {
+        next_x = head.location_x;
+        next_y = head.location_y;
         head.location_y++;
     }
-    
+    // Move body 
+    for (snake_piece *tmp = head.next; tmp != NULL; tmp = tmp->next)
+    {
+        temp_y = tmp->location_y;
+        temp_x = tmp->location_x;
+        tmp->location_y = next_y;
+        tmp->location_x = next_x;
+        next_y = temp_y;
+        next_x = temp_x;
+        
+    }
+       
+}
+
+// Function to grow snake (also spawns new fruit when current fruit is eaten)
+void grow_snake(WINDOW *game)
+{
+    snake_piece *part = NULL;
+    snake_piece *temp = NULL;
+    if (head.location_y == board.fruit_y && head.location_x == board.fruit_x)
+    {        
+        part = malloc(sizeof(snake_piece));
+
+        if (part != NULL && part_count == 1)
+        {
+            switch (head.CurrentDir)
+            {
+                case RIGHT: 
+                    part->location_y = head.location_y;
+                    part->location_x = head.location_x - 1;
+                    break;
+                case UP: 
+                    part->location_y = head.location_y + 1;
+                    part->location_x = head.location_x;
+                    break;
+                case LEFT: 
+                    part->location_y = head.location_y;
+                    part->location_x = head.location_x + 1;
+                    break;
+                case DOWN:
+                    part->location_y = head.location_y - 1;
+                    part->location_x = head.location_x;
+                    break;
+            }
+
+            part->CurrentDir = head.CurrentDir;
+            part->next = NULL;
+            head.next = part;
+            tail = part;
+        }
+
+        else if (part != NULL)
+        {
+            switch (tail->CurrentDir)
+            {
+                case RIGHT: 
+                    part->location_y = tail->location_y;
+                    part->location_x = tail->location_x - 1;
+                    break;
+                case UP: 
+                    part->location_y = tail->location_y + 1;
+                    part->location_x = tail->location_x;
+                    break;
+                case LEFT: 
+                    part->location_y = tail->location_y;
+                    part->location_x = tail->location_x + 1;
+                    break;
+                case DOWN:
+                    part->location_y = tail->location_y - 1;
+                    part->location_x = tail->location_x;
+                    break;
+            }
+            part->CurrentDir = tail->CurrentDir;
+            part->next = NULL;
+            tail->next = part;
+            tail = part;
+            
+        }
+        
+        spawn_fruit(game);
+        part_count++;
+    }
 }
 
 // Function to draw graphics on screen
 void draw(WINDOW* game)
 {
-    // Print fruit
-    mvwprintw(game, head.location_y, head.location_x, "#");
+    // clear screen of former snake parts
+    werase(game);
+
+    // draw border
+    box(game, 0, 0);
+
+    // Print snake
+
+    for (snake_piece *tmp = &head; tmp != NULL; tmp = tmp->next)
+    {
+        mvwprintw(game, tmp->location_y, tmp->location_x, "#");
+    }
     
-    //Print snake 
+    //Print fruit 
     mvwprintw(game, board.fruit_y, board.fruit_x, "o");
-
-    // Print tail
-    if (part_count > 1)
-    {
-        mvwprintw(game, tail.location_y, tail.location_x, "x");
-    }
     
-    // Erase previous snake part
-    switch (head.CurrentDir)
-    {
-        case RIGHT:
-            mvwprintw(game, head.location_y, head.location_x - part_count, " ");
-        case LEFT:
-            mvwprintw(game, head.location_y, head.location_x + part_count, " ");
-        case UP:
-            mvwprintw(game, head.location_y + part_count, head.location_x, " ");
-        case DOWN:
-            mvwprintw(game, head.location_y - part_count, head.location_x, " ");
-
-
-    }
-
     // Print "Game Over" message
     if (board.game_over == 1)
     {
