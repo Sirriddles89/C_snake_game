@@ -5,7 +5,7 @@
 #include <time.h>
 #include <stdlib.h>
 
-#define DELAY 80000
+#define DELAY 120000
 #define TIMEOUT 10
 
 // game structs
@@ -27,6 +27,7 @@ typedef struct g_board {
    int fruit_y;
    int fruit_x;
    int game_over;
+   int score;
    int height; 
    int width;
 } game_board;
@@ -36,10 +37,11 @@ void spawn_fruit(WINDOW *game);
 void input(int ch);
 void movement(int rows, int cols);
 void grow_snake(WINDOW *game);
+void collision();
 void draw(WINDOW *game);
 
 // Global variables
-game_board board = {.game_over = 0};
+game_board board = {.game_over = 0, .score = 0};
 snake_piece head;
 snake_piece *tail;
 int rows, cols;
@@ -61,13 +63,13 @@ int main(void)
     //establish height/width for game area and center it
    int rows, cols;
    getmaxyx(stdscr, rows, cols);
-   board.height = rows;
+   board.height = rows - 2;
    board.width = cols / 3;
    int start_y = (rows - board.height) / 2; 
    int start_x = (cols - board.width) / 2; 
    refresh();
 
-   // Create window for game area and put a border around it
+   // Create window for game area
    WINDOW *game = newwin(board.height, board.width, start_y, start_x); 
  
     // Set initial coordinates for snake head
@@ -90,12 +92,8 @@ int main(void)
         // grow snake
         grow_snake(game);
 
-        // Collision detection (border)
-        if (head.location_y == 0 || head.location_y == board.height - 1 || head.location_x == 0|| head.location_x == board.width - 1)
-        {
-            
-            board.game_over++;
-        }
+        // Collision detection
+        collision();
         
 
         // draw stuff
@@ -116,28 +114,35 @@ int main(void)
 // Function to spawn fruit within board parameters
 void spawn_fruit(WINDOW *game)
 {
-    board.fruit_y = rand() % (board.height - 10) + 5;
-        
-    board.fruit_x = rand() % (board.width - 20) + 10;
+    state1:
+        board.fruit_y = rand() % (board.height - 10) + 1; 
+        board.fruit_x = rand() % (board.width - 20) + 1;
+        for (snake_piece *tmp = &head; tmp != NULL; tmp = tmp->next)
+        {
+            if (tmp->location_y == board.fruit_y && tmp->location_x == board.fruit_x)
+            {
+                goto state1;
+            }
+        }
 }
 
 // Function to read keyboard input from user
 void input(int ch)
 {
     ch = getch();
-        if (ch == KEY_RIGHT)
+        if (ch == KEY_RIGHT && head.CurrentDir != LEFT)
         {
             head.CurrentDir = RIGHT;
         }
-        else if (ch == KEY_UP)
+        else if (ch == KEY_UP && head.CurrentDir != DOWN)
         {
             head.CurrentDir = UP;
         }
-        else if (ch == KEY_LEFT)
+        else if (ch == KEY_LEFT && head.CurrentDir != RIGHT)
         {
             head.CurrentDir = LEFT;
         }
-        else if (ch == KEY_DOWN)
+        else if (ch == KEY_DOWN && head.CurrentDir != UP)
         {
             head.CurrentDir = DOWN;
         }
@@ -149,6 +154,8 @@ void movement(int rows, int cols)
     // Move head
     int temp_y;
     int temp_x;
+    direction previous_d;
+    direction temp_d;
     if (head.CurrentDir == RIGHT)
     {
         next_x = head.location_x;
@@ -174,15 +181,23 @@ void movement(int rows, int cols)
         next_y = head.location_y;
         head.location_y++;
     }
+
+    previous_d = head.CurrentDir;
     // Move body 
     for (snake_piece *tmp = head.next; tmp != NULL; tmp = tmp->next)
     {
+        //remember current location and direction
         temp_y = tmp->location_y;
         temp_x = tmp->location_x;
+        temp_d = tmp->CurrentDir;
+        //update location and direction
         tmp->location_y = next_y;
         tmp->location_x = next_x;
+        tmp->CurrentDir = previous_d;
+        //update variables
         next_y = temp_y;
         next_x = temp_x;
+        previous_d = temp_d;
         
     }
        
@@ -254,8 +269,33 @@ void grow_snake(WINDOW *game)
         }
         
         spawn_fruit(game);
+        board.score += 10;
         part_count++;
     }
+}
+
+// Function to detect running into walls or self
+void collision()
+{
+    // Collision detection (border)
+    if (head.location_y == 0 || head.location_y == board.height - 1 || head.location_x == 0|| head.location_x == board.width - 1)
+    {
+        
+        board.game_over++;
+    }
+
+    // Collision detection (body)
+   
+    for (snake_piece *tmp = head.next; tmp != NULL; tmp = tmp->next)
+    {
+        if (tmp->location_y == head.location_y && tmp->location_x == head.location_x)
+        {
+            board.game_over++;
+        }
+    }
+
+    
+
 }
 
 // Function to draw graphics on screen
@@ -266,6 +306,9 @@ void draw(WINDOW* game)
 
     // draw border
     box(game, 0, 0);
+
+    //update score
+    mvprintw(0, 0, "Score: %i", board.score);
 
     // Print snake
 
