@@ -1,7 +1,8 @@
 # C_snake_game
 Simple snake game built with C
-Since I don't really know where to start with more complex C projects, I'm going to code along with this guide to making a snake game in C:
 
-https://www.niit.com/india/knowledge-centre/Game-development-in-C
+Requirements: GCC compiler, ncurses library
 
-Hopefully the concepts and syntax I'm exposed to here will give me some tools to branch out and code some projects on my own in the future.
+This is my first completed original C project. For that matter, it's my first ever completed personal project - as in, not something prompted 
+or guided by an academic course or resource. 
+
