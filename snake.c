@@ -39,6 +39,7 @@ void grow_snake(WINDOW *game);
 void speedup();
 void collision();
 void draw(WINDOW *game);
+void free_snake();
 
 // Global variables
 game_board board = {.game_over = 0, .score = 0};
@@ -109,7 +110,8 @@ int main(void)
         }
         
     }
-    endwin(); 
+    endwin();
+    free_snake(); 
     return 0;
 }
 
@@ -309,4 +311,18 @@ void draw(WINDOW* game)
     }
     wrefresh(game);
     usleep(delay);
+}
+
+void free_snake()
+{
+    snake_piece *tmp = NULL;
+    snake_piece *tmp_head = head.next;
+
+
+    while (tmp_head != NULL)
+    {
+        tmp = tmp_head;
+        tmp_head = tmp_head->next;
+        free(tmp);
+    }
 }
