@@ -5,7 +5,6 @@
 #include <time.h>
 #include <stdlib.h>
 
-#define DELAY 120000
 #define TIMEOUT 10
 
 // game structs
@@ -35,8 +34,9 @@ typedef struct g_board {
 // Function prototypes
 void spawn_fruit(WINDOW *game);
 void input(int ch);
-void movement(int rows, int cols);
+void movement();
 void grow_snake(WINDOW *game);
+void speedup();
 void collision();
 void draw(WINDOW *game);
 
@@ -48,6 +48,8 @@ int rows, cols;
 int next_x;
 int next_y;
 int part_count;
+int delay = 150000;
+int speed_tier = 50;
 
 int main(void)
 {
@@ -59,6 +61,11 @@ int main(void)
     timeout(TIMEOUT);
     head.CurrentDir = RIGHT;
     part_count = 1;
+
+    // initialize color
+    start_color();
+    init_pair(1, COLOR_RED, COLOR_BLACK);
+    init_pair(2, COLOR_GREEN, COLOR_BLACK);
 
     //establish height/width for game area and center it
    int rows, cols;
@@ -77,26 +84,23 @@ int main(void)
     head.location_x = (board.width / 2);
 
     // Spawn initial fruit
+    wattron(game,COLOR_PAIR(1));
     spawn_fruit(game);
+    wattroff(game,COLOR_PAIR(1));
 
     int ch;
     while(board.game_over == 0)
     {
-
-        // Take user input
         input(ch);
-        
-        // Move snake / tail
-        movement(rows, cols);
 
-        // grow snake
         grow_snake(game);
+        
+        movement();
 
-        // Collision detection
+        speedup();
+
         collision();
         
-
-        // draw stuff
         draw(game);
 
         if (board.game_over == 1)
@@ -105,9 +109,7 @@ int main(void)
         }
         
     }
-
-    //apparently the getchar() here was fucking everything up? But I had to include it initially to get the program to run? Idk man I'm so confused
-    endwin();
+    endwin(); 
     return 0;
 }
 
@@ -117,6 +119,8 @@ void spawn_fruit(WINDOW *game)
     state1:
         board.fruit_y = rand() % (board.height - 10) + 1; 
         board.fruit_x = rand() % (board.width - 20) + 1;
+        
+        // Ensure fruit doesn't spawn within snake body
         for (snake_piece *tmp = &head; tmp != NULL; tmp = tmp->next)
         {
             if (tmp->location_y == board.fruit_y && tmp->location_x == board.fruit_x)
@@ -148,8 +152,8 @@ void input(int ch)
         }
 }
 
-// Function to set which direction the snake moves in
-void movement(int rows, int cols)
+// Function to set which direction the snake head moves in, and to animate snake
+void movement()
 {
     // Move head
     int temp_y;
@@ -182,8 +186,9 @@ void movement(int rows, int cols)
         head.location_y++;
     }
 
+    
+    // Animate body 
     previous_d = head.CurrentDir;
-    // Move body 
     for (snake_piece *tmp = head.next; tmp != NULL; tmp = tmp->next)
     {
         //remember current location and direction
@@ -194,7 +199,7 @@ void movement(int rows, int cols)
         tmp->location_y = next_y;
         tmp->location_x = next_x;
         tmp->CurrentDir = previous_d;
-        //update variables
+        //update coordinates and directions to inform next node
         next_y = temp_y;
         next_x = temp_x;
         previous_d = temp_d;
@@ -214,26 +219,6 @@ void grow_snake(WINDOW *game)
 
         if (part != NULL && part_count == 1)
         {
-            switch (head.CurrentDir)
-            {
-                case RIGHT: 
-                    part->location_y = head.location_y;
-                    part->location_x = head.location_x - 1;
-                    break;
-                case UP: 
-                    part->location_y = head.location_y + 1;
-                    part->location_x = head.location_x;
-                    break;
-                case LEFT: 
-                    part->location_y = head.location_y;
-                    part->location_x = head.location_x + 1;
-                    break;
-                case DOWN:
-                    part->location_y = head.location_y - 1;
-                    part->location_x = head.location_x;
-                    break;
-            }
-
             part->CurrentDir = head.CurrentDir;
             part->next = NULL;
             head.next = part;
@@ -242,25 +227,6 @@ void grow_snake(WINDOW *game)
 
         else if (part != NULL)
         {
-            switch (tail->CurrentDir)
-            {
-                case RIGHT: 
-                    part->location_y = tail->location_y;
-                    part->location_x = tail->location_x - 1;
-                    break;
-                case UP: 
-                    part->location_y = tail->location_y + 1;
-                    part->location_x = tail->location_x;
-                    break;
-                case LEFT: 
-                    part->location_y = tail->location_y;
-                    part->location_x = tail->location_x + 1;
-                    break;
-                case DOWN:
-                    part->location_y = tail->location_y - 1;
-                    part->location_x = tail->location_x;
-                    break;
-            }
             part->CurrentDir = tail->CurrentDir;
             part->next = NULL;
             tail->next = part;
@@ -294,8 +260,17 @@ void collision()
         }
     }
 
-    
+}
 
+//function to increase game speed as user's score increases
+void speedup()
+{
+    
+    if (board.score == speed_tier && delay > 50000)
+    {
+        delay = delay - 5000;
+        speed_tier += 50;
+    }
 }
 
 // Function to draw graphics on screen
@@ -308,17 +283,22 @@ void draw(WINDOW* game)
     box(game, 0, 0);
 
     //update score
-    mvprintw(0, 0, "Score: %i", board.score);
+    attron(COLOR_PAIR(2));
+    mvprintw(0, 10, "Score: %i", board.score);
+    attroff(COLOR_PAIR(2));
 
     // Print snake
-
+    wattron(game, COLOR_PAIR(2));
     for (snake_piece *tmp = &head; tmp != NULL; tmp = tmp->next)
     {
         mvwprintw(game, tmp->location_y, tmp->location_x, "#");
     }
+    wattroff(game, COLOR_PAIR(2));
     
-    //Print fruit 
+    //Print fruit
+    wattron(game, COLOR_PAIR(1)); 
     mvwprintw(game, board.fruit_y, board.fruit_x, "o");
+    wattroff(game, COLOR_PAIR(1));
     
     // Print "Game Over" message
     if (board.game_over == 1)
@@ -328,5 +308,5 @@ void draw(WINDOW* game)
         sleep(1);
     }
     wrefresh(game);
-    usleep(DELAY);
+    usleep(delay);
 }
