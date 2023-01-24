@@ -38,7 +38,7 @@ void movement();
 void grow_snake(WINDOW *game);
 void speedup();
 void collision();
-void draw(WINDOW *game);
+void draw(WINDOW *game, int start_x, int start_y);
 void free_snake();
 
 // Global variables
@@ -70,9 +70,13 @@ int main(void)
 
     //establish height/width for game area and center it
    int rows, cols;
-   getmaxyx(stdscr, rows, cols);
-   board.height = rows - 2;
-   board.width = cols / 3;
+   getmaxyx(stdscr, rows, cols);   
+   board.height += rows < 20? rows: 20;
+   board.width += rows < 20? (rows + 50): 70;
+   if (cols < board.width)
+   {
+    board.width = cols;
+   }
    int start_y = (rows - board.height) / 2; 
    int start_x = (cols - board.width) / 2; 
    refresh();
@@ -102,11 +106,11 @@ int main(void)
 
         collision();
         
-        draw(game);
+        draw(game, start_x, start_y);
 
         if (board.game_over == 1)
         {
-            sleep(2);
+            sleep(3);
         }
         
     }
@@ -119,8 +123,8 @@ int main(void)
 void spawn_fruit(WINDOW *game)
 {
     state1:
-        board.fruit_y = rand() % (board.height - 10) + 1; 
-        board.fruit_x = rand() % (board.width - 20) + 1;
+        board.fruit_y = rand() % (board.height - 10) + 3; 
+        board.fruit_x = rand() % (board.width - 20) + 2;
         
         // Ensure fruit doesn't spawn within snake body
         for (snake_piece *tmp = &head; tmp != NULL; tmp = tmp->next)
@@ -276,7 +280,7 @@ void speedup()
 }
 
 // Function to draw graphics on screen
-void draw(WINDOW* game)
+void draw(WINDOW* game, int start_x, int start_y)
 {
     // clear screen of former snake parts
     werase(game);
@@ -286,7 +290,7 @@ void draw(WINDOW* game)
 
     //update score
     attron(COLOR_PAIR(2));
-    mvprintw(0, 10, "Score: %i", board.score);
+    mvprintw(start_y, (start_x - 10), "Score: %i", board.score);
     attroff(COLOR_PAIR(2));
 
     // Print snake
@@ -306,7 +310,10 @@ void draw(WINDOW* game)
     if (board.game_over == 1)
     {
         wclear(game);
-        mvwprintw(game, (board.height / 2), (board.width / 2), "%s", "GAME OVER");
+        mvwprintw(game, (board.height / 2), ((board.width - 9) / 2), "GAME OVER");
+        wattron(game, COLOR_PAIR(2));
+        mvwprintw(game, (board.height / 2) + 1, ((board.width - 14) / 2), "Your Score: %i", board.score);
+        wattroff(game, COLOR_PAIR(2));
         sleep(1);
     }
     wrefresh(game);
