@@ -114,8 +114,10 @@ int main(void)
         }
         
     }
-    endwin();
-    free_snake(); 
+    
+    delwin(game);
+    free_snake();
+    endwin(); 
     return 0;
 }
 
